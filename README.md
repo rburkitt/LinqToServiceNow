@@ -9,7 +9,7 @@ The following methods/expressions are currently supported: select where, orderby
 
 The current limitations are due to what can be done through the underlying ServiceNow web service interface.
 
-Example:<br/>
+Example:
 <code>
 
             var ComputerRepository =
