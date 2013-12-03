@@ -33,7 +33,9 @@ namespace LinqToServiceNow
             @IN = 100,
             @STARTSWITH = 200,
             @CONTAINS = 300,
-            @ENDSWITH = 400
+            @ENDSWITH = 400,
+            [Description("LIKE")]
+            LIKESTRING = 500
         }
 
         public enum ContinuationOperator
