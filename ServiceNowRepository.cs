@@ -5,6 +5,15 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
+/**
+ * LinqToServiceNow
+ *
+ * @package    LinqToServiceNow
+ * @author     Raymond Burkitt
+ * @copyright  (c) 2013 Technao
+ * @license    http://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt
+ */
+
 namespace LinqToServiceNow
 {
     public class ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult>

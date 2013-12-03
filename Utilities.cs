@@ -3,6 +3,15 @@ using System.ComponentModel;
 using System.Linq.Expressions;
 using System.Reflection;
 
+/**
+ * LinqToServiceNow
+ *
+ * @package    LinqToServiceNow
+ * @author     Raymond Burkitt
+ * @copyright  (c) 2013 Technao
+ * @license    http://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt
+ */
+
 namespace LinqToServiceNow
 {
     class Utilities
