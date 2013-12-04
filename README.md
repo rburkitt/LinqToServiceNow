@@ -5,7 +5,7 @@ Linq provider for ServiceNow Soap Web Service
 
 This provider will allow a client to query a reference to a ServiceNow web service using Linq query expressions and methods.
 
-The following methods/expressions are currently supported: select where, orderby, Take, Skip, Range, IN, Contains, Not, Or, And.
+The following methods/expressions are currently supported: select where, orderby, Take, Skip, Range, IN, Like, Contains, Not, Or, And.
 
 The current limitations are due to what can be done through the underlying ServiceNow web service interface.
 
