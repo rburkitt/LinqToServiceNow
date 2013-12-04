@@ -166,16 +166,24 @@ namespace LinqToServiceNow
             string fieldName = "";
             string myValue = "";
 
-            if(methodCall.Method.Name == "LikeString")
-            {
-                fieldName = GetFieldName(methodCall.Arguments[0]);
-                myValue = GetFieldValue(methodCall.Arguments[1]);
-            }
-            else
+            if (methodCall.Object != null)
             {
                 fieldName = GetFieldName(methodCall.Object);
                 myValue = GetFieldValue(methodCall.Arguments[0]);
-            }            
+            }
+            else
+            {
+                if (methodCall.Arguments[0].NodeType == ExpressionType.MemberAccess)
+                {
+                    fieldName = GetFieldName(methodCall.Arguments[1]);
+                    myValue = GetFieldValue(methodCall.Arguments[0]);
+                }
+                else
+                {
+                    fieldName = GetFieldName(methodCall.Arguments[0]);
+                    myValue = GetFieldValue(methodCall.Arguments[1]);
+                }
+            }         
 
             if(string.IsNullOrEmpty(fieldName) || string.IsNullOrEmpty(myValue))
                 CreateExpression(continuation, methodCall, neg);
