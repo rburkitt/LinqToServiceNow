@@ -73,24 +73,9 @@ namespace LinqToServiceNow
         private void CreateSimpleExpression(Utilities.ContinuationOperator continuation, BinaryExpression binExpr, bool neg)
         {
             string fieldName = "";
-            string myValue = "";
+            string fieldValue = "";
 
             ExpressionType oper = binExpr.NodeType;
-
-            Action FlipOperator = () => 
-            {
-                if( oper == ExpressionType.GreaterThan)
-                    oper = ExpressionType.LessThan;  
-
-                if(oper == ExpressionType.GreaterThanOrEqual)
-                    oper = ExpressionType.LessThanOrEqual;
-
-                if(oper == ExpressionType.LessThan)
-                    oper = ExpressionType.GreaterThan;
- 
-                if (oper == ExpressionType.LessThanOrEqual)
-                    oper = ExpressionType.GreaterThanOrEqual;
-            };
 
             ExpressionType[] binOperators = { ExpressionType.And, ExpressionType.Or, ExpressionType.AndAlso, ExpressionType.OrElse };
 
@@ -101,91 +86,132 @@ namespace LinqToServiceNow
             }
             else
             {
-                if (binExpr.Left.NodeType == ExpressionType.MemberAccess) // flip expression
+                FlipOperator(binExpr.Left, ref oper);
+                SetValues(binExpr.Left, ref fieldName, ref fieldValue);
+                if (string.IsNullOrEmpty(fieldName) | string.IsNullOrEmpty(fieldValue))
                 {
-                    fieldName = GetFieldName(binExpr.Left);
-                    myValue = GetFieldValue(binExpr.Right);
+                    SetValues(binExpr.Right, ref fieldName, ref fieldValue);
                 }
-                else if( binExpr.Left.NodeType == ExpressionType.Constant) // flip expression
-                 {
-                    fieldName = GetFieldName(binExpr.Right);
-                    myValue = GetFieldValue(binExpr.Left);
-                    FlipOperator();
-                 }
-                 else if( binExpr.Left.NodeType == ExpressionType.Call)
-                 {
-                    MethodCallExpression methodCall = binExpr.Left as MethodCallExpression;
-                    if( methodCall.Method.Name == "CompareString")
-                    {
-                        if (methodCall.Arguments[0].NodeType == ExpressionType.MemberAccess)
-                        {
-                            fieldName = GetFieldName(methodCall.Arguments[1]);
-                            myValue = GetFieldValue(methodCall.Arguments[0]);
-                        }
-                        else
-                        {
-                            fieldName = GetFieldName(methodCall.Arguments[0]);
-                            myValue = GetFieldValue(methodCall.Arguments[1]);
-                        }
-                    }
-                    else if( methodCall.Arguments[0].NodeType == ExpressionType.Constant) //flip expression
-                    {
-                        fieldName = GetFieldName(binExpr.Right);
-                        myValue = GetFieldValue(binExpr.Left);
-                        FlipOperator();
-                    }
-                    else
-                    {
-                        fieldName = GetFieldName(binExpr.Left);
-                        myValue = GetFieldValue(binExpr.Right);
-                    }
-                 }
             }
 
-            EncodeQuery(continuation, fieldName, (Utilities.RepoExpressionType)oper, myValue, neg);
+            EncodeQuery(continuation, fieldName, (Utilities.RepoExpressionType)oper, fieldValue, neg);
         }
 
         private void CreateContainsExpression(Utilities.ContinuationOperator continuation, MethodCallExpression methodCall, bool neg)
         {
             string fieldName = "";
-            string myValue = "";
+            string fieldValue = "";
 
-            fieldName = GetFieldName(methodCall.Arguments[1]);
-            myValue = GetFieldValue(methodCall.Arguments[0]);
+            SetMethodValues(methodCall, out fieldName, out fieldValue);
 
-            if (string.IsNullOrEmpty(fieldName) | string.IsNullOrEmpty(myValue))
+            if (string.IsNullOrEmpty(fieldName) | string.IsNullOrEmpty(fieldValue))
             {
                 CreateExpression(continuation, methodCall, neg);
             }
 
-            EncodeQuery(continuation, fieldName, Utilities.RepoExpressionType.IN, myValue, neg);
+            EncodeQuery(continuation, fieldName, Utilities.RepoExpressionType.IN, fieldValue, neg);
+        }
+
+        private void SetMethodValues(MethodCallExpression methodCall, out string fieldName, out string fieldValue)
+        {
+            if (methodCall.Arguments[1].NodeType == ExpressionType.MemberAccess)
+            {
+                fieldName = GetFieldName(methodCall.Arguments[1]);
+                fieldValue = GetFieldValue(methodCall.Arguments[0]);
+            }
+            else
+            {
+                fieldName = GetFieldName(methodCall.Arguments[0]);
+                fieldValue = GetFieldValue(methodCall.Arguments[1]);
+            }
+        }
+
+        private void SetValues(Expression expr, ref string fieldName, ref string fieldValue)
+        {
+            if (expr.NodeType == ExpressionType.MemberAccess)
+            {
+                fieldValue = GetFieldValue(expr);
+            }
+            else if (expr.NodeType == ExpressionType.Constant)
+            {
+                fieldName = GetFieldName(expr);
+            }
+            else if (expr.NodeType == ExpressionType.Call)
+            {
+                MethodCallExpression methodCall = (MethodCallExpression)expr;
+                if (methodCall.Arguments.Count > 1)
+                {
+                    SetMethodValues(methodCall, out fieldName, out fieldValue);
+                }
+                else
+                {
+                    if (methodCall.Arguments[0].NodeType == ExpressionType.Constant)
+                    {
+                        fieldName = GetFieldName(expr);
+                    }
+                    if (methodCall.Arguments[0].NodeType == ExpressionType.MemberAccess)
+                    {
+                        fieldValue = GetFieldValue(expr);
+                    }
+                }
+            }
+        }
+
+        private void FlipOperator(Expression expr, ref ExpressionType oper)
+        {
+            Func<ExpressionType, ExpressionType> _flipOperator = o =>
+            {
+                if (o == ExpressionType.GreaterThan)
+                    o = ExpressionType.LessThan;
+
+                if (o == ExpressionType.GreaterThanOrEqual)
+                    o = ExpressionType.LessThanOrEqual;
+
+                if (o == ExpressionType.LessThan)
+                    o = ExpressionType.GreaterThan;
+
+                if (o == ExpressionType.LessThanOrEqual)
+                    o = ExpressionType.GreaterThanOrEqual;
+
+                return o;
+            };
+
+             if (expr.NodeType == ExpressionType.Constant)
+            {
+                oper = _flipOperator(oper);
+            }
+            else if (expr.NodeType == ExpressionType.Call)
+            {
+                MethodCallExpression methodCall = (MethodCallExpression)expr;
+
+                if (methodCall.Arguments[0].NodeType == ExpressionType.Constant)
+                {
+                    oper = _flipOperator(oper);
+                }
+            }
         }
 
         private void CreateSimpleMethodCall(Utilities.ContinuationOperator continuation, MethodCallExpression methodCall, bool neg)
         {
             string fieldName = "";
-            string myValue = "";
+            string fieldValue = "";
 
-			if (methodCall.Object != null) {
-				fieldName = GetFieldName (methodCall.Object);
-				myValue = GetFieldValue (methodCall.Arguments [0]);
-			} else {
-				if (methodCall.Arguments[0].NodeType == ExpressionType.MemberAccess)
-				{
-					fieldName = GetFieldName(methodCall.Arguments[1]);
-					myValue = GetFieldValue(methodCall.Arguments[0]);
-				}
-				else
-				{
-					fieldName = GetFieldName(methodCall.Arguments[0]);
-					myValue = GetFieldValue(methodCall.Arguments[1]);
-				}
-			}           
+            if (methodCall.Object != null)
+            {
+                fieldName = GetFieldName(methodCall.Object);
+                fieldValue = GetFieldValue(methodCall.Arguments[0]);
+            }
+            else
+            {
+                SetMethodValues(methodCall, out fieldName, out fieldValue);
+            }
 
-            if(string.IsNullOrEmpty(fieldName) || string.IsNullOrEmpty(myValue))
+            if (string.IsNullOrEmpty(fieldName) | string.IsNullOrEmpty(fieldValue))
+            {
                 CreateExpression(continuation, methodCall, neg);
+            }
 
-            EncodeQuery(continuation, fieldName, Utilities.GetRepoExpressionType(methodCall.Method.Name), myValue, neg);
+            EncodeQuery(continuation, fieldName, Utilities.GetRepoExpressionType(methodCall.Method.Name), fieldValue, neg);
         }
 
         private string GetFieldName(Expression expr)
