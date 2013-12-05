@@ -416,6 +416,37 @@ namespace LinqToServiceNow
             return this;
         }
 
+        public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> GroupBy(Expression<Func<TGetRecordsResponseGetRecordsResult, dynamic>> field)
+        {
+            Action<Expression> setGroupBy = expr =>
+            {
+                if (expr.NodeType == ExpressionType.New)
+                {
+                    string query = "^GROUPBY" + String.Join(",", (expr as NewExpression).Arguments.Select(o => GetPropertyName(o)).ToArray());
+                    _encodedQuery += query;
+                    SetFilterProperty("__encoded_query", _encodedQuery);
+                }
+                else
+                {
+                    string query = "^GROUPBY" + GetPropertyName(expr);
+                    _encodedQuery += query;
+                    SetFilterProperty("__encoded_query", _encodedQuery);
+                }
+            };
+
+            if(field.Body.NodeType == ExpressionType.Convert)
+            {
+                UnaryExpression unaryExpression  = (field.Body as UnaryExpression);
+                setGroupBy(unaryExpression.Operand);
+            }
+            else
+            {
+                setGroupBy(field.Body);
+            }
+
+            return this;
+        }
+
         public dynamic Insert<TInsert>(TInsert _insert)
         {
             Type t = proxyUser.GetType();
