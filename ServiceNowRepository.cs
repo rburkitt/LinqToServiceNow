@@ -50,8 +50,6 @@ namespace LinqToServiceNow
 
         private void CreateExpression(Utilities.ContinuationOperator continuation, Expression expr, bool neg)
         {
-            ExpressionType[] operators = { ExpressionType.And, ExpressionType.Or };
-
             if (expr.NodeType == ExpressionType.Call)
             {
                 MethodCallExpression methodCall = (expr as MethodCallExpression);
