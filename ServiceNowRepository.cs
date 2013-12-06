@@ -416,6 +416,11 @@ namespace LinqToServiceNow
             return this;
         }
 
+		public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> GroupBy(Expression<Func<TGetRecordsResponseGetRecordsResult, dynamic>> source, Expression<Func<TGetRecordsResponseGetRecordsResult, dynamic>> field)
+		{
+			return GroupBy (source);
+		}
+
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> GroupBy(Expression<Func<TGetRecordsResponseGetRecordsResult, dynamic>> field)
         {
             Action<Expression> setGroupBy = expr =>
