@@ -427,13 +427,25 @@ namespace LinqToServiceNow
             {
                 if (expr.NodeType == ExpressionType.New)
                 {
-                    string query = "^GROUPBY" + String.Join(",", (expr as NewExpression).Arguments.Select(o => GetPropertyName(o)).ToArray());
-                    _encodedQuery += query;
+                    string query = "GROUPBY" + String.Join(",", (expr as NewExpression).Arguments.Select(o => GetPropertyName(o)).ToArray());
+                    
+					if (!string.IsNullOrEmpty(_encodedQuery))
+					{
+						query = "^" + query;
+					}
+
+					_encodedQuery += query;
                     SetFilterProperty("__encoded_query", _encodedQuery);
                 }
                 else
                 {
-                    string query = "^GROUPBY" + GetPropertyName(expr);
+                    string query = "GROUPBY" + GetPropertyName(expr);
+
+					if (!string.IsNullOrEmpty(_encodedQuery))
+					{
+						query = "^" + query;
+					}
+
                     _encodedQuery += query;
                     SetFilterProperty("__encoded_query", _encodedQuery);
                 }
