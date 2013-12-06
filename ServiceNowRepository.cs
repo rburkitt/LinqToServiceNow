@@ -409,11 +409,21 @@ namespace LinqToServiceNow
             return this;
         }
 
+        public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> ThenBy(Expression<Func<TGetRecordsResponseGetRecordsResult, dynamic>> source)
+        {
+            return OrderBy(source);
+        }
+
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> OrderByDescending(Expression<Func<TGetRecordsResponseGetRecordsResult, dynamic>> field)
         {
             SetOrdering("__order_by_desc", field);
 
             return this;
+        }
+
+        public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> ThenByDescending(Expression<Func<TGetRecordsResponseGetRecordsResult, dynamic>> source)
+        {
+            return OrderByDescending(source);
         }
 
 		public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> GroupBy(Expression<Func<TGetRecordsResponseGetRecordsResult, dynamic>> source, Expression<Func<TGetRecordsResponseGetRecordsResult, dynamic>> field)
