@@ -429,6 +429,7 @@ namespace LinqToServiceNow
 		public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> GroupBy<U, V>(Expression<Func<TGetRecordsResponseGetRecordsResult, U>> keySelector,
 			Expression<Func<TGetRecordsResponseGetRecordsResult, V>> elementSelector)
 		{
+            Select(elementSelector.Compile());
 			return GroupBy(keySelector);
 		}
 
@@ -442,6 +443,7 @@ namespace LinqToServiceNow
             Expression<Func<TGetRecordsResponseGetRecordsResult, V>> elementSelector, 
             Expression<Func<U, IEnumerable<TGetRecordsResponseGetRecordsResult>, W>> resultSelector)
         {
+            Select(elementSelector.Compile());
             return GroupBy(keySelector);
         }
 
