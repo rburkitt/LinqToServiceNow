@@ -426,8 +426,8 @@ namespace LinqToServiceNow
             return OrderByDescending(source);
         }
 
-		public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> GroupBy(Expression<Func<TGetRecordsResponseGetRecordsResult, dynamic>> keySelector,
-			Expression<Func<TGetRecordsResponseGetRecordsResult, dynamic>> elementSelector)
+		public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> GroupBy<U, V>(Expression<Func<TGetRecordsResponseGetRecordsResult, U>> keySelector,
+			Expression<Func<TGetRecordsResponseGetRecordsResult, V>> elementSelector)
 		{
 			return GroupBy(keySelector);
 		}
