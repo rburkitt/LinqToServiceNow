@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -126,11 +126,11 @@ namespace LinqToServiceNow
 
         private void SetValues(Expression expr, ref string fieldName, ref string fieldValue)
         {
-            if (expr.NodeType == ExpressionType.MemberAccess)
+			if (expr.NodeType == ExpressionType.Constant)
             {
                 fieldValue = GetFieldValue(expr);
             }
-            else if (expr.NodeType == ExpressionType.Constant)
+			else if (expr.NodeType == ExpressionType.MemberAccess)
             {
                 fieldName = GetFieldName(expr);
             }
