@@ -493,6 +493,21 @@ namespace LinqToServiceNow
             return this;
         }
 
+        public IEnumerable<dynamic> Join<T, U, V>(ServiceNowRepository<T, U, V> serviceNowRepository,
+            Func<TGetRecordsResponseGetRecordsResult, dynamic> outerKeySelector,
+            Func<V, object> innerKeySelector,
+            Func<TGetRecordsResponseGetRecordsResult, V, dynamic> resultSelector)
+            where T : new()
+            where U : new()
+        {
+            dynamic query = this.ToList().Join(serviceNowRepository.ToList(),
+                o => outerKeySelector(o),
+                o => innerKeySelector(o),
+                (o, p) => resultSelector(o, p));
+
+            return query;
+        }
+
         public dynamic Insert<TInsert>(TInsert _insert)
         {
             Type t = proxyUser.GetType();
