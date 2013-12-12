@@ -126,11 +126,11 @@ namespace LinqToServiceNow
 
         private void SetValues(Expression expr, ref string fieldName, ref string fieldValue)
         {
-			if (expr.NodeType == ExpressionType.Constant)
+            if (expr.NodeType == ExpressionType.Constant)
             {
                 fieldValue = GetFieldValue(expr);
             }
-			else if (expr.NodeType == ExpressionType.MemberAccess)
+            else if (expr.NodeType == ExpressionType.MemberAccess)
             {
                 fieldName = GetFieldName(expr);
             }
@@ -145,11 +145,11 @@ namespace LinqToServiceNow
                 {
                     if (methodCall.Arguments[0].NodeType == ExpressionType.Constant)
                     {
-                        fieldName = GetFieldName(expr);
+                        fieldValue = GetFieldValue(expr);
                     }
                     if (methodCall.Arguments[0].NodeType == ExpressionType.MemberAccess)
                     {
-                        fieldValue = GetFieldValue(expr);
+                        fieldName = GetFieldName(expr);
                     }
                 }
             }
@@ -159,6 +159,9 @@ namespace LinqToServiceNow
         {
             Func<ExpressionType, ExpressionType> _flipOperator = o =>
             {
+                if (o == ExpressionType.Equal)
+                    o = ExpressionType.Equal;
+
                 if (o == ExpressionType.GreaterThan)
                     o = ExpressionType.LessThan;
 
@@ -174,7 +177,7 @@ namespace LinqToServiceNow
                 return o;
             };
 
-             if (expr.NodeType == ExpressionType.Constant)
+            if (expr.NodeType == ExpressionType.Constant)
             {
                 oper = _flipOperator(oper);
             }
