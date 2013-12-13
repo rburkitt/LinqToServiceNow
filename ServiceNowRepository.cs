@@ -324,7 +324,8 @@ namespace LinqToServiceNow
         public dynamic First(Expression<Func<TGetRecordsResponseGetRecordsResult, bool>> stmt)
         {
             SetFilterProperty("__limit", "1");
-            Where(stmt);
+            if(stmt.Body.NodeType != ExpressionType.Constant)
+                Where(stmt);
             return ToArray().First();
         }
 
@@ -380,17 +381,17 @@ namespace LinqToServiceNow
             return this;
         }
 
-        public TGetRecordsResponseGetRecordsResult First()
+        public dynamic First()
         {
             return First((o) => true);
         }
 
-        public TGetRecordsResponseGetRecordsResult Single()
+        public dynamic Single()
         {
             return First();
         }
 
-        public TGetRecordsResponseGetRecordsResult Single(Expression<Func<TGetRecordsResponseGetRecordsResult, bool>> stmt)
+        public dynamic Single(Expression<Func<TGetRecordsResponseGetRecordsResult, bool>> stmt)
         {
             return First(stmt);
         }
