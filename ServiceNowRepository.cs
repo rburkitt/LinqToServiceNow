@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,6 +27,7 @@ namespace LinqToServiceNow
         private Func<TGetRecordsResponseGetRecordsResult, dynamic> _selectQuery;
 
         private string _encodedQuery;
+        private string _groupbyQuery;
 
         private void SetFilterProperty(string prop, string val)
         {
@@ -80,6 +81,10 @@ namespace LinqToServiceNow
             if (binOperators.Contains(binExpr.NodeType))
             {
                 CreateExpression(continuation, binExpr.Left, neg);
+
+                if (binOperators.Contains(binExpr.Left.NodeType) | binOperators.Contains(binExpr.Right.NodeType))
+                    _encodedQuery += "NQ";
+
                 CreateExpression((Utilities.ContinuationOperator)binExpr.NodeType, binExpr.Right, neg);
             }
             else
@@ -285,6 +290,15 @@ namespace LinqToServiceNow
             throw new ArgumentException("No property reference expression was found.", "propertyRefExpr");
         }
 
+        private void AppendGroupBy()
+        {
+            if (String.IsNullOrEmpty(_groupbyQuery))
+                return;
+
+            _encodedQuery += _groupbyQuery;
+            SetFilterProperty("__encoded_query", _encodedQuery);
+        }
+
         private void EncodeQuery(Utilities.ContinuationOperator continuationOperator, string fieldName, Utilities.RepoExpressionType myOperator, string myValue, bool neg)
         {
             if (string.IsNullOrEmpty(fieldName) | string.IsNullOrEmpty(myValue))
@@ -299,7 +313,7 @@ namespace LinqToServiceNow
 
             string query = string.Format("{0}{1}{2}", fieldName, oper, myValue);
 
-            if (!string.IsNullOrEmpty(_encodedQuery))
+            if (!string.IsNullOrEmpty(_encodedQuery) && !(_encodedQuery.EndsWith("NQ")))
             {
                 query = Utilities.GetContinuationOperator(continuationOperator) + query;
             }
@@ -353,12 +367,14 @@ namespace LinqToServiceNow
             Type t = proxyUser.GetType();
             MethodInfo methodInfo = t.GetMethod("getRecords");
 
+            AppendGroupBy();
+
             TGetRecordsResponseGetRecordsResult[] ret = (TGetRecordsResponseGetRecordsResult[])methodInfo.Invoke(proxyUser, new object[] { _filter });
 
             _encodedQuery = string.Empty;
             _filter = new TGetRecords();
 
-            if(_selectQuery != null)
+            if (_selectQuery != null)
                 return ret.Select(o => _selectQuery(o)).ToArray();
             else
                 return ret.Cast<dynamic>().ToArray();
@@ -377,6 +393,7 @@ namespace LinqToServiceNow
 
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> Where(Expression<Func<TGetRecordsResponseGetRecordsResult, bool>> stmt)
         {
+            _encodedQuery += "NQ";
             CreateExpression(Utilities.ContinuationOperator.And, stmt.Body);
             return this;
         }
@@ -455,30 +472,14 @@ namespace LinqToServiceNow
         {
             Action<Expression> setGroupBy = expr =>
             {
+                string query;
+
                 if (expr.NodeType == ExpressionType.New)
-                {
-                    string query = "GROUPBY" + String.Join(",", (expr as NewExpression).Arguments.Select(o => GetPropertyName(o)).ToArray());
-                    
-					if (!string.IsNullOrEmpty(_encodedQuery))
-					{
-						query = "^" + query;
-					}
-
-					_encodedQuery += query;
-                    SetFilterProperty("__encoded_query", _encodedQuery);
-                }
+                    query = "^GROUPBY" + String.Join(",", (expr as NewExpression).Arguments.Select(o => GetPropertyName(o)).ToArray());
                 else
-                {
-                    string query = "GROUPBY" + GetPropertyName(expr);
+                    query = "^GROUPBY" + GetPropertyName(expr);
 
-					if (!string.IsNullOrEmpty(_encodedQuery))
-					{
-						query = "^" + query;
-					}
-
-                    _encodedQuery += query;
-                    SetFilterProperty("__encoded_query", _encodedQuery);
-                }
+                _groupbyQuery += query;
             };
 
             if(field.Body.NodeType == ExpressionType.Convert)
