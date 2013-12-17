@@ -44,32 +44,32 @@ namespace LinqToServiceNow
             }
         }
 
-        private void CreateExpression(Utilities.ContinuationOperator continuation, Expression expr)
+        private void VisitExpression(Utilities.ContinuationOperator continuation, Expression expr)
         {
-            CreateExpression(continuation, expr, false);
+            VisitExpression(continuation, expr, false);
         }
 
-        private void CreateExpression(Utilities.ContinuationOperator continuation, Expression expr, bool neg)
+        private void VisitExpression(Utilities.ContinuationOperator continuation, Expression expr, bool neg)
         {
             if (expr.NodeType == ExpressionType.Call)
             {
                 MethodCallExpression methodCall = (expr as MethodCallExpression);
 
                 if (methodCall.Method.Name == "Contains" && methodCall.Arguments[0].NodeType == ExpressionType.NewArrayInit)
-                    CreateContainsExpression(continuation, expr as MethodCallExpression, neg);
+                    VisitContainsExpression(continuation, expr as MethodCallExpression, neg);
                 else
-                    CreateSimpleMethodCall(continuation, methodCall, neg);
+                    VisitSimpleMethodCall(continuation, methodCall, neg);
             }
             else if (expr.NodeType == ExpressionType.Not)
             {
                 UnaryExpression unaryExpr = expr as UnaryExpression;
-                CreateExpression(continuation, unaryExpr.Operand, true);
+                VisitExpression(continuation, unaryExpr.Operand, true);
             }
             else
-                CreateSimpleExpression(continuation, expr as BinaryExpression, neg);
+                VisitSimpleExpression(continuation, expr as BinaryExpression, neg);
         }
 
-        private void CreateSimpleExpression(Utilities.ContinuationOperator continuation, BinaryExpression binExpr, bool neg)
+        private void VisitSimpleExpression(Utilities.ContinuationOperator continuation, BinaryExpression binExpr, bool neg)
         {
             string fieldName = "";
             string fieldValue = "";
@@ -80,12 +80,12 @@ namespace LinqToServiceNow
 
             if (binOperators.Contains(binExpr.NodeType))
             {
-                CreateExpression(continuation, binExpr.Left, neg);
+                VisitExpression(continuation, binExpr.Left, neg);
 
                 if (binOperators.Contains(binExpr.Left.NodeType) | binOperators.Contains(binExpr.Right.NodeType))
                     _encodedQuery += "NQ";
 
-                CreateExpression((Utilities.ContinuationOperator)binExpr.NodeType, binExpr.Right, neg);
+                VisitExpression((Utilities.ContinuationOperator)binExpr.NodeType, binExpr.Right, neg);
             }
             else
             {
@@ -100,7 +100,7 @@ namespace LinqToServiceNow
             EncodeQuery(continuation, fieldName, (Utilities.RepoExpressionType)oper, fieldValue, neg);
         }
 
-        private void CreateContainsExpression(Utilities.ContinuationOperator continuation, MethodCallExpression methodCall, bool neg)
+        private void VisitContainsExpression(Utilities.ContinuationOperator continuation, MethodCallExpression methodCall, bool neg)
         {
             string fieldName = "";
             string fieldValue = "";
@@ -109,7 +109,7 @@ namespace LinqToServiceNow
 
             if (string.IsNullOrEmpty(fieldName) | string.IsNullOrEmpty(fieldValue))
             {
-                CreateExpression(continuation, methodCall, neg);
+                VisitExpression(continuation, methodCall, neg);
             }
 
             EncodeQuery(continuation, fieldName, Utilities.RepoExpressionType.IN, fieldValue, neg);
@@ -197,7 +197,7 @@ namespace LinqToServiceNow
             }
         }
 
-        private void CreateSimpleMethodCall(Utilities.ContinuationOperator continuation, MethodCallExpression methodCall, bool neg)
+        private void VisitSimpleMethodCall(Utilities.ContinuationOperator continuation, MethodCallExpression methodCall, bool neg)
         {
             string fieldName = "";
             string fieldValue = "";
@@ -214,7 +214,7 @@ namespace LinqToServiceNow
 
             if (string.IsNullOrEmpty(fieldName) | string.IsNullOrEmpty(fieldValue))
             {
-                CreateExpression(continuation, methodCall, neg);
+                VisitExpression(continuation, methodCall, neg);
             }
 
             EncodeQuery(continuation, fieldName, Utilities.GetRepoExpressionType(methodCall.Method.Name), fieldValue, neg);
@@ -416,7 +416,7 @@ namespace LinqToServiceNow
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> Where(Expression<Func<TGetRecordsResponseGetRecordsResult, bool>> stmt)
         {
             _encodedQuery += "NQ";
-            CreateExpression(Utilities.ContinuationOperator.And, stmt.Body);
+            VisitExpression(Utilities.ContinuationOperator.And, stmt.Body);
             return this;
         }
 
