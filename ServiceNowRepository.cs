@@ -420,6 +420,12 @@ namespace LinqToServiceNow
             return this;
         }
 
+        public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> SkipWhile(Expression<Func<TGetRecordsResponseGetRecordsResult, bool>> stmt)
+        {
+            VisitExpression(Utilities.ContinuationOperator.And, stmt.Body, true);
+            return this;
+        }
+
         public dynamic First()
         {
             return First((o) => true);
