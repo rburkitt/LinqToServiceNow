@@ -321,6 +321,19 @@ namespace LinqToServiceNow
             }
         }
 
+        private TGetRecordsResponseGetRecordsResult[] GetRecords()
+        {
+            Type t = proxyUser.GetType();
+            MethodInfo methodInfo = t.GetMethod("getRecords");
+
+            TGetRecordsResponseGetRecordsResult[] ret = (TGetRecordsResponseGetRecordsResult[])methodInfo.Invoke(proxyUser, new object[] { _filter });
+
+            _encodedQuery = string.Empty;
+            _filter = new TGetRecords();
+
+            return ret;
+        }
+
         public dynamic First(Expression<Func<TGetRecordsResponseGetRecordsResult, bool>> stmt)
         {
             SetFilterProperty("__limit", "1");
@@ -350,18 +363,22 @@ namespace LinqToServiceNow
 
         public dynamic[] ToArray()
         {
-            Type t = proxyUser.GetType();
-            MethodInfo methodInfo = t.GetMethod("getRecords");
-
-            TGetRecordsResponseGetRecordsResult[] ret = (TGetRecordsResponseGetRecordsResult[])methodInfo.Invoke(proxyUser, new object[] { _filter });
-
-            _encodedQuery = string.Empty;
-            _filter = new TGetRecords();
+            TGetRecordsResponseGetRecordsResult[] ret = GetRecords();
 
             if(_selectQuery != null)
                 return ret.Select(o => _selectQuery(o)).ToArray();
             else
                 return ret.Cast<dynamic>().ToArray();
+        }
+
+        public Dictionary<U, dynamic> ToDictionary<U>(Func<TGetRecordsResponseGetRecordsResult, U> keySelector)
+        {
+            TGetRecordsResponseGetRecordsResult[] ret = GetRecords();
+
+            if(_selectQuery != null)
+                return ret.ToDictionary(o => keySelector(o), p => _selectQuery(p));
+            else
+                return ret.ToDictionary(o => keySelector(o), o => (dynamic)o);
         }
 
         public List<dynamic> ToList()
