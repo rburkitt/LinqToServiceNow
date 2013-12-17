@@ -395,6 +395,13 @@ namespace LinqToServiceNow
                 return ret.ToDictionary(o => keySelector(o), o => (dynamic)o);
         }
 
+        public Dictionary<U, V> ToDictionary<U, V>(Func<TGetRecordsResponseGetRecordsResult, U> keySelector, Func<TGetRecordsResponseGetRecordsResult, V> elementSelector)
+        {
+            TGetRecordsResponseGetRecordsResult[] ret = GetRecords();
+
+            return ret.ToDictionary(o => keySelector(o), p => elementSelector(p));
+        }
+
         public List<dynamic> ToList()
         {
             return ToArray().ToList();
