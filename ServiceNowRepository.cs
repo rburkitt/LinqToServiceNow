@@ -574,9 +574,9 @@ namespace LinqToServiceNow
             return methodInfo.Invoke(proxyUser, new object[] { _delete });
         }
 
-        public IEnumerator<ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult>> GetEnumerator()
+        public IEnumerator<dynamic> GetEnumerator()
         {
-            return ToList().Cast<ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult>>().GetEnumerator();
+            return ToList().GetEnumerator();
         }
 
         public IEnumerator GetEnumerator1()
