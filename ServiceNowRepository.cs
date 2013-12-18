@@ -40,6 +40,14 @@ namespace LinqToServiceNow
             else
             {
                 PropertyInfo pInfo = t.GetProperty(prop);
+
+                if (prop == "__order_by")
+                {
+                    object existing_value = pInfo.GetValue(_filter);
+                    if (existing_value != null)
+                        val = existing_value.ToString() + "," + val;
+                }
+
                 pInfo.SetValue(_filter, val, null);
             }
         }
@@ -55,7 +63,7 @@ namespace LinqToServiceNow
             {
                 MethodCallExpression methodCall = (expr as MethodCallExpression);
 
-                if (methodCall.Method.Name == "Contains" && methodCall.Arguments[0].NodeType == ExpressionType.NewArrayInit)
+                if (methodCall.Method.Name == "Contains" & methodCall.Arguments.Count > 1)
                     VisitContainsExpression(continuation, expr as MethodCallExpression, neg);
                 else
                     VisitSimpleMethodCall(continuation, methodCall, neg);
@@ -82,7 +90,7 @@ namespace LinqToServiceNow
             {
                 VisitExpression(continuation, binExpr.Left, neg);
 
-                if (binOperators.Contains(binExpr.Left.NodeType) | binOperators.Contains(binExpr.Right.NodeType))
+                if (binOperators.Contains(binExpr.Left.NodeType) & binOperators.Contains(binExpr.Right.NodeType))
                     _encodedQuery += "NQ";
 
                 VisitExpression((Utilities.ContinuationOperator)binExpr.NodeType, binExpr.Right, neg);
