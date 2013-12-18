@@ -426,6 +426,12 @@ namespace LinqToServiceNow
             return this;
         }
 
+        public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> TakeWhile(Expression<Func<TGetRecordsResponseGetRecordsResult, bool>> stmt)
+        {
+            VisitExpression(Utilities.ContinuationOperator.And, stmt.Body);
+            return this;
+        }
+
         public dynamic First()
         {
             return First((o) => true);
