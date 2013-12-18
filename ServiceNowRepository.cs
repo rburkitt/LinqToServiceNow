@@ -35,6 +35,13 @@ namespace LinqToServiceNow
             FieldInfo fInfo = t.GetField(prop);
             if (fInfo != null)
             {
+                if (prop == "__order_by")
+                {
+                    object existing_value = fInfo.GetValue(_filter);
+                    if (existing_value != null)
+                        val = existing_value.ToString() + "," + val;
+                }
+
                 fInfo.SetValue(_filter, val);
             }
             else
