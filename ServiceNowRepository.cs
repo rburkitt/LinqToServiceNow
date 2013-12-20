@@ -91,14 +91,24 @@ namespace LinqToServiceNow
 
             ExpressionType oper = binExpr.NodeType;
 
-            ExpressionType[] binOperators = { ExpressionType.And, ExpressionType.Or, ExpressionType.AndAlso, ExpressionType.OrElse };
+            ExpressionType[] AndOperators = { ExpressionType.And, ExpressionType.AndAlso };
+
+            ExpressionType[] OrOperators = { ExpressionType.Or, ExpressionType.OrElse };
+
+            ExpressionType[] binOperators = AndOperators.Concat(OrOperators).ToArray();
 
             if (binOperators.Contains(binExpr.NodeType))
             {
                 VisitExpression(continuation, binExpr.Left, neg);
 
                 if (binOperators.Contains(binExpr.Left.NodeType) & binOperators.Contains(binExpr.Right.NodeType))
-                    _encodedQuery += "NQ";
+                {
+                    if (AndOperators.Contains(binExpr.NodeType))
+                        _encodedQuery += "NQ";
+
+                    if (OrOperators.Contains(binExpr.NodeType))
+                        _encodedQuery += "^NQ";
+                }
 
                 VisitExpression((Utilities.ContinuationOperator)binExpr.NodeType, binExpr.Right, neg);
             }
