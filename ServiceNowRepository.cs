@@ -18,7 +18,7 @@ namespace LinqToServiceNow
 {
     public class ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult>
         where TServiceNow_cmdb_ci_ : new()
-        where TGetRecords : new()        
+        where TGetRecords : new()
     {
         private TServiceNow_cmdb_ci_ proxyUser = new TServiceNow_cmdb_ci_();
 
@@ -28,6 +28,12 @@ namespace LinqToServiceNow
 
         private string _encodedQuery;
         private string _groupbyQuery;
+
+        private string _first_row;
+        private string _last_row;
+        private string _order_by;
+        private string _order_by_desc;
+        private string _limit;
 
         private void SetFilterProperty(string prop, string val)
         {
@@ -350,13 +356,18 @@ namespace LinqToServiceNow
 
         private void SetOrdering(string order, Expression<Func<TGetRecordsResponseGetRecordsResult, dynamic>> field)
         {
+            SetFilterProperty(order, GetOrdering(field));
+        }
+
+        private string GetOrdering(Expression<Func<TGetRecordsResponseGetRecordsResult, dynamic>> field)
+        {
             if (field.Body.NodeType == ExpressionType.New)
             {
-                SetFilterProperty(order, string.Join(",", (field.Body as NewExpression).Arguments.Select(o => GetPropertyName(o)).ToArray()));
+                return string.Join(",", (field.Body as NewExpression).Arguments.Select(o => GetPropertyName(o)).ToArray());
             }
             else
             {
-                SetFilterProperty(order, GetPropertyName(field.Body));
+                return GetPropertyName(field.Body);
             }
         }
 
@@ -367,37 +378,58 @@ namespace LinqToServiceNow
 
             TGetRecordsResponseGetRecordsResult[] ret = (TGetRecordsResponseGetRecordsResult[])methodInfo.Invoke(proxyUser, new object[] { _filter });
 
-            _encodedQuery = string.Empty;
-            _filter = new TGetRecords();
-
             return ret;
         }
 
         public dynamic First(Expression<Func<TGetRecordsResponseGetRecordsResult, bool>> stmt)
         {
-            SetFilterProperty("__limit", "1");
-            if(stmt.Body.NodeType != ExpressionType.Constant)
-                Where(stmt);
-            return ToArray().First();
+            _limit = "1";
+            ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retval = this.DeepCopy();
+            if (stmt.Body.NodeType != ExpressionType.Constant)
+                retval.Where(stmt);
+            return retval.ToArray().FirstOrDefault();
         }
 
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> Take(int count)
         {
-            SetFilterProperty("__last_row", count.ToString());
-            return this;
+            _last_row = count.ToString();
+            ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retval = this.DeepCopy();
+            return retval;
         }
 
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> Skip(int count)
         {
-            SetFilterProperty("__first_row", count.ToString());
-            return this;
+            _first_row = count.ToString();
+            ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retval = this.DeepCopy();
+            return retval;
         }
 
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> Range(int start, int last)
         {
-            SetFilterProperty("__first_row", (start - 1).ToString());
-            SetFilterProperty("__last_row", ((start - 1) + last).ToString());
-            return this;
+            _first_row = (start - 1).ToString();
+            _last_row = ((start - 1) + last).ToString();
+            ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retval = this.DeepCopy();
+            return retval;
+        }
+
+        public dynamic ElementAt(int at)
+        {
+            ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retval = this.DeepCopy();
+            return retval.Range(at, at - 1).First();
+        }
+
+        public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> DeepCopy()
+        {
+            ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> other =
+                this.MemberwiseClone() as ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult>;
+            other._filter = new TGetRecords();
+            other.SetFilterProperty("__encoded_query", _encodedQuery);
+            other.SetFilterProperty("__limit", _limit);
+            other.SetFilterProperty("__first_row", _first_row);
+            other.SetFilterProperty("__last_row", _last_row);
+            other.SetFilterProperty("__order_by", _order_by);
+            other.SetFilterProperty("__order_by_desc", _order_by_desc);
+            return other;
         }
 
         public dynamic[] ToArray()
@@ -435,26 +467,33 @@ namespace LinqToServiceNow
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> @Select<U>(Func<TGetRecordsResponseGetRecordsResult, U> selector)
         {
             _selectQuery = (s) => selector(s);
-            return this;
+            ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retval = this.DeepCopy();
+            return retval;
         }
 
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> Where(Expression<Func<TGetRecordsResponseGetRecordsResult, bool>> stmt)
         {
-            _encodedQuery += "NQ";
-            VisitExpression(Utilities.ContinuationOperator.And, stmt.Body);
-            return this;
+            if (!(string.IsNullOrEmpty(_encodedQuery)) && !(_encodedQuery.EndsWith("NQ")))
+                _encodedQuery += "NQ";
+
+            ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retval = this.DeepCopy();
+
+            retval.VisitExpression(Utilities.ContinuationOperator.And, stmt.Body);
+            return retval;
         }
 
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> SkipWhile(Expression<Func<TGetRecordsResponseGetRecordsResult, bool>> stmt)
         {
-            VisitExpression(Utilities.ContinuationOperator.And, stmt.Body, true);
-            return this;
+            ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retval = this.DeepCopy();
+            retval.VisitExpression(Utilities.ContinuationOperator.And, stmt.Body, true);
+            return retval;
         }
 
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> TakeWhile(Expression<Func<TGetRecordsResponseGetRecordsResult, bool>> stmt)
         {
-            VisitExpression(Utilities.ContinuationOperator.And, stmt.Body);
-            return this;
+            ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retval = this.DeepCopy();
+            retval.VisitExpression(Utilities.ContinuationOperator.And, stmt.Body);
+            return retval;
         }
 
         public dynamic First()
@@ -484,9 +523,12 @@ namespace LinqToServiceNow
 
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> OrderBy(Expression<Func<TGetRecordsResponseGetRecordsResult, dynamic>> field)
         {
-            SetOrdering("__order_by", field);
-
-            return this;
+            if (_order_by != null)
+                _order_by += "," + GetOrdering(field);
+            else
+                _order_by = GetOrdering(field);
+            ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retval = this.DeepCopy();
+            return retval;
         }
 
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> ThenBy(Expression<Func<TGetRecordsResponseGetRecordsResult, dynamic>> source)
@@ -496,9 +538,12 @@ namespace LinqToServiceNow
 
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> OrderByDescending(Expression<Func<TGetRecordsResponseGetRecordsResult, dynamic>> field)
         {
-            SetOrdering("__order_by_desc", field);
-
-            return this;
+            if (_order_by_desc != null)
+                _order_by_desc += "," + GetOrdering(field);
+            else
+                _order_by_desc = GetOrdering(field);
+            ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retval = this.DeepCopy();
+            return retval;
         }
 
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> ThenByDescending(Expression<Func<TGetRecordsResponseGetRecordsResult, dynamic>> source)
@@ -506,12 +551,12 @@ namespace LinqToServiceNow
             return OrderByDescending(source);
         }
 
-		public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> GroupBy<U, V>(Expression<Func<TGetRecordsResponseGetRecordsResult, U>> keySelector,
-			Expression<Func<TGetRecordsResponseGetRecordsResult, V>> elementSelector)
-		{
+        public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> GroupBy<U, V>(Expression<Func<TGetRecordsResponseGetRecordsResult, U>> keySelector,
+            Expression<Func<TGetRecordsResponseGetRecordsResult, V>> elementSelector)
+        {
             Select(elementSelector.Compile());
-			return GroupBy(keySelector);
-		}
+            return GroupBy(keySelector);
+        }
 
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> GroupBy<U, V>(Expression<Func<TGetRecordsResponseGetRecordsResult, U>> keySelector,
             Expression<Func<U, IEnumerable<TGetRecordsResponseGetRecordsResult>, V>> resultSelector)
@@ -519,8 +564,8 @@ namespace LinqToServiceNow
             return GroupBy(keySelector);
         }
 
-        public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> GroupBy<U, V, W>(Expression<Func<TGetRecordsResponseGetRecordsResult, U>> keySelector, 
-            Expression<Func<TGetRecordsResponseGetRecordsResult, V>> elementSelector, 
+        public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> GroupBy<U, V, W>(Expression<Func<TGetRecordsResponseGetRecordsResult, U>> keySelector,
+            Expression<Func<TGetRecordsResponseGetRecordsResult, V>> elementSelector,
             Expression<Func<U, IEnumerable<TGetRecordsResponseGetRecordsResult>, W>> resultSelector)
         {
             Select(elementSelector.Compile());
@@ -541,9 +586,9 @@ namespace LinqToServiceNow
                 _groupbyQuery += query;
             };
 
-            if(field.Body.NodeType == ExpressionType.Convert)
+            if (field.Body.NodeType == ExpressionType.Convert)
             {
-                UnaryExpression unaryExpression  = (field.Body as UnaryExpression);
+                UnaryExpression unaryExpression = (field.Body as UnaryExpression);
                 setGroupBy(unaryExpression.Operand);
             }
             else
@@ -551,7 +596,9 @@ namespace LinqToServiceNow
                 setGroupBy(field.Body);
             }
 
-            return this;
+            ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retval = this.DeepCopy();
+
+            return retval;
         }
 
         public IEnumerable<dynamic> Join<T, U, V>(ServiceNowRepository<T, U, V> serviceNowRepository,
@@ -569,38 +616,23 @@ namespace LinqToServiceNow
             return query;
         }
 
-        public IEnumerable<dynamic> Join<T, U, V, W>(ServiceNowRepository<T, U, V> serviceNowRepository,
-            Func<TGetRecordsResponseGetRecordsResult, dynamic> outerKeySelector,
-            Func<V, object> innerKeySelector,
-            Func<TGetRecordsResponseGetRecordsResult, V, W> resultSelector)
-            where T : new()
-            where U : new()
-        {
-            dynamic query = this.ToList().Join(serviceNowRepository.ToList(),
-                o => outerKeySelector(o),
-                o => innerKeySelector(o),
-                (o, p) => resultSelector(o, p));
-
-            return query;
-        }
-
         public dynamic Insert<TInsert>(TInsert _insert)
         {
             Type t = proxyUser.GetType();
             MethodInfo methodInfo = t.GetMethod("insert");
-            return methodInfo.Invoke(proxyUser, new object[]{_insert});
+            return methodInfo.Invoke(proxyUser, new object[] { _insert });
         }
 
-        public dynamic Update<TUpdate>(TUpdate _update) 
+        public dynamic Update<TUpdate>(TUpdate _update)
         {
-            Type t  = proxyUser.GetType();
+            Type t = proxyUser.GetType();
             MethodInfo methodInfo = t.GetMethod("update");
-            return methodInfo.Invoke(proxyUser, new object[]{_update});
+            return methodInfo.Invoke(proxyUser, new object[] { _update });
         }
 
         public dynamic Delete<TDelete>(TDelete _delete) where TDelete : new()
         {
-            Type t  = proxyUser.GetType();
+            Type t = proxyUser.GetType();
             MethodInfo methodInfo = t.GetMethod("deleteRecord");
             return methodInfo.Invoke(proxyUser, new object[] { _delete });
         }
