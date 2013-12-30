@@ -365,14 +365,69 @@ namespace LinqToServiceNow
             }
         }
 
+        private bool IsLimited()
+        {
+            bool retVal;
+
+            Type t = _filter.GetType();
+
+            PropertyInfo[] propInfo = t.GetProperties();
+
+            retVal = propInfo.Any(o => new string[] { "__last_row", "__limit" }.Contains(o.Name) & o.GetValue(_filter) != null);
+
+            return retVal;
+        }
+
+        private string GetFirstRow()
+        {
+            string retVal = "0";
+
+            Type t = _filter.GetType();
+
+            PropertyInfo propInfo = t.GetProperty("__first_row");
+
+            object obj = propInfo.GetValue(_filter);
+
+            if (obj != null)
+                retVal = obj.ToString();
+
+            return retVal;
+        }
+
         private TGetRecordsResponseGetRecordsResult[] GetRecords()
         {
             Type t = proxyUser.GetType();
+
             MethodInfo methodInfo = t.GetMethod("getRecords");
 
-            TGetRecordsResponseGetRecordsResult[] ret = (TGetRecordsResponseGetRecordsResult[])methodInfo.Invoke(proxyUser, new object[] { _filter });
+            AppendGroupBy();
 
-            return ret;
+            if (!IsLimited())
+            {
+                var list = new List<TGetRecordsResponseGetRecordsResult>();
+                int first = int.Parse(GetFirstRow());
+                int last = 250;
+
+                TGetRecordsResponseGetRecordsResult[] rslt =
+                    (TGetRecordsResponseGetRecordsResult[])methodInfo.Invoke(proxyUser, new object[] { Range(first, last)._filter });
+
+                do
+                {
+                    list.AddRange(rslt);
+                    first += 250;
+                    rslt = (TGetRecordsResponseGetRecordsResult[])methodInfo.Invoke(proxyUser, new object[] { Range(first, last)._filter });
+                }
+                while (rslt.Count() > 0);
+
+                return list.ToArray();
+            }
+            else
+            {
+                TGetRecordsResponseGetRecordsResult[] ret =
+                    (TGetRecordsResponseGetRecordsResult[])methodInfo.Invoke(proxyUser, new object[] { _filter });
+
+                return ret;
+            }
         }
 
         public dynamic First(Expression<Func<TGetRecordsResponseGetRecordsResult, bool>> stmt)
@@ -405,12 +460,12 @@ namespace LinqToServiceNow
             return retVal;
         }
 
-        public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> Range(int start, int last)
+        private ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> Range(int start, int last)
         {
             ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retVal = this.DeepCopy();
 
-            retVal.SetFilterProperty("__first_row", (start - 1).ToString());
-            retVal.SetFilterProperty("__last_row", ((start - 1) + last).ToString());
+            retVal.SetFilterProperty("__first_row", start.ToString());
+            retVal.SetFilterProperty("__last_row", last.ToString());
 
             return retVal;
         }
@@ -418,7 +473,7 @@ namespace LinqToServiceNow
         public dynamic ElementAt(int at)
         {
             ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retval = this.DeepCopy();
-            return retval.Range(at, at - 1).First();
+            return retval.Range(at - 1, at).First();
         }
 
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> DeepCopy()
