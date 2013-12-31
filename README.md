@@ -17,7 +17,6 @@ The following methods/expressions are currently supported:
             <li>TakeWhile</li>
             <li>Skip</li>
             <li>SkipWhile</li>
-            <li>Range</li>
             <li>ElementAt</li>
             <li>IN</li>
             <li>Like</li>
@@ -47,6 +46,5 @@ Example:
                         & new string[] { "1", "7" }.Contains(c.install_status))
                         & ("D9CMSD41" == c.name | c.name.Contains("R")))
                         orderby c.name
-                        select new { Name = c.name, Updated = c.sys_updated_on, OS = c.os })
-                        .Range(5, 5).ToList().Count;
+                        select new { Name = c.name, Updated = c.sys_updated_on, OS = c.os }).ToList().Count;
 </code>
