@@ -8,11 +8,14 @@ This provider will allow a client to query a reference to a ServiceNow web servi
 The following methods/expressions are currently supported: 
 
 <ul>
-            <li>select</li>
-            <li>where</li>
-            <li>orderby</li>
-            <li>groupby</li>
-            <li>join</li>
+            <li>Select</li>
+            <li>Where</li>
+            <li>OrderBy</li>
+            <li>ThenBy</li>
+            <li>OrderByDescending</li>
+            <li>ThenByDescending</li>
+            <li>GroupBy</li>
+            <li>Join</li>
             <li>Take</li>
             <li>TakeWhile</li>
             <li>Skip</li>
