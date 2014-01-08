@@ -14,7 +14,7 @@ using System.Reflection;
 
 namespace LinqToServiceNow
 {
-    class Utilities
+    public class Utilities
     {
         public enum RepoExpressionType
         {
@@ -112,27 +112,48 @@ namespace LinqToServiceNow
 
         public static RepoExpressionType FlipRepoExpressionType(RepoExpressionType en)
         {
-
-            RepoExpressionType oper = default(RepoExpressionType);
-
             switch (en)
             {
                 case RepoExpressionType.GreaterThan:
-                    oper = RepoExpressionType.LessThan;
+                    en = RepoExpressionType.LessThan;
                     break;
                 case RepoExpressionType.GreaterThanOrEqual:
-                    oper = RepoExpressionType.LessThanOrEqual;
+                    en = RepoExpressionType.LessThanOrEqual;
                     break;
                 case RepoExpressionType.LessThan:
-                    oper = RepoExpressionType.GreaterThan;
+                    en = RepoExpressionType.GreaterThan;
                     break;
                 case RepoExpressionType.LessThanOrEqual:
-                    oper = RepoExpressionType.GreaterThanOrEqual;
+                    en = RepoExpressionType.GreaterThanOrEqual;
                     break;
             }
 
-            return oper;
+            return en;
+        }
 
+        public static string GetPropertyName(Expression propertyRefExpr)
+        {
+            if (propertyRefExpr == null)
+                throw new ArgumentNullException("propertyRefExpr", "propertyRefExpr is null.");
+
+            if (propertyRefExpr.NodeType == ExpressionType.Constant)
+                return propertyRefExpr.ToString();
+
+            MemberExpression memberExpr = propertyRefExpr as MemberExpression;
+            if (memberExpr == null)
+            {
+                UnaryExpression unaryExpr = propertyRefExpr as UnaryExpression;
+                if (unaryExpr != null && unaryExpr.NodeType == ExpressionType.Convert)
+                    memberExpr = unaryExpr.Operand as MemberExpression;
+            }
+
+            if (memberExpr != null && memberExpr.Member.MemberType == System.Reflection.MemberTypes.Property)
+                return memberExpr.Member.Name;
+
+            if (memberExpr != null && memberExpr.Member.MemberType == System.Reflection.MemberTypes.Field)
+                return memberExpr.Member.Name;
+
+            throw new ArgumentException("No property reference expression was found.", "propertyRefExpr");
         }
     }
 }

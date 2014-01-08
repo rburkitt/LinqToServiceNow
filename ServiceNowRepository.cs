@@ -59,262 +59,6 @@ namespace LinqToServiceNow
             }
         }
 
-        private void VisitExpression(Utilities.ContinuationOperator continuation, Expression expr)
-        {
-            VisitExpression(continuation, expr, false);
-        }
-
-        private void VisitExpression(Utilities.ContinuationOperator continuation, Expression expr, bool neg)
-        {
-            if (expr.NodeType == ExpressionType.Call)
-            {
-                MethodCallExpression methodCall = (expr as MethodCallExpression);
-
-                if (methodCall.Method.Name == "Contains" & methodCall.Arguments.Count > 1)
-                    VisitContainsExpression(continuation, expr as MethodCallExpression, neg);
-                else
-                    VisitSimpleMethodCall(continuation, methodCall, neg);
-            }
-            else if (expr.NodeType == ExpressionType.Not)
-            {
-                UnaryExpression unaryExpr = expr as UnaryExpression;
-                VisitExpression(continuation, unaryExpr.Operand, true);
-            }
-            else
-                VisitSimpleExpression(continuation, expr as BinaryExpression, neg);
-        }
-
-        private void VisitSimpleExpression(Utilities.ContinuationOperator continuation, BinaryExpression binExpr, bool neg)
-        {
-            string fieldName = "";
-            string fieldValue = "";
-
-            ExpressionType oper = binExpr.NodeType;
-
-            ExpressionType[] AndOperators = { ExpressionType.And, ExpressionType.AndAlso };
-
-            ExpressionType[] OrOperators = { ExpressionType.Or, ExpressionType.OrElse };
-
-            ExpressionType[] binOperators = AndOperators.Concat(OrOperators).ToArray();
-
-            if (binOperators.Contains(binExpr.NodeType))
-            {
-                VisitExpression(continuation, binExpr.Left, neg);
-
-                if (binOperators.Contains(binExpr.Left.NodeType) & binOperators.Contains(binExpr.Right.NodeType))
-                {
-                    if (AndOperators.Contains(binExpr.NodeType))
-                        _encodedQuery += "NQ";
-
-                    if (OrOperators.Contains(binExpr.NodeType))
-                        _encodedQuery += "^NQ";
-                }
-
-                VisitExpression((Utilities.ContinuationOperator)binExpr.NodeType, binExpr.Right, neg);
-            }
-            else
-            {
-                FlipOperator(binExpr.Left, ref oper);
-                SetValues(binExpr.Left, ref fieldName, ref fieldValue);
-                if (string.IsNullOrEmpty(fieldName) | string.IsNullOrEmpty(fieldValue))
-                {
-                    SetValues(binExpr.Right, ref fieldName, ref fieldValue);
-                }
-            }
-
-            EncodeQuery(continuation, fieldName, (Utilities.RepoExpressionType)oper, fieldValue, neg);
-        }
-
-        private void VisitContainsExpression(Utilities.ContinuationOperator continuation, MethodCallExpression methodCall, bool neg)
-        {
-            string fieldName = "";
-            string fieldValue = "";
-
-            SetMethodValues(methodCall, out fieldName, out fieldValue);
-
-            if (string.IsNullOrEmpty(fieldName) | string.IsNullOrEmpty(fieldValue))
-            {
-                VisitExpression(continuation, methodCall, neg);
-            }
-
-            EncodeQuery(continuation, fieldName, Utilities.RepoExpressionType.IN, fieldValue, neg);
-        }
-
-        private void SetMethodValues(MethodCallExpression methodCall, out string fieldName, out string fieldValue)
-        {
-            if (methodCall.Arguments[1].NodeType == ExpressionType.MemberAccess)
-            {
-                fieldName = GetFieldName(methodCall.Arguments[1]);
-                fieldValue = GetFieldValue(methodCall.Arguments[0]);
-            }
-            else
-            {
-                fieldName = GetFieldName(methodCall.Arguments[0]);
-                fieldValue = GetFieldValue(methodCall.Arguments[1]);
-            }
-        }
-
-        private void SetValues(Expression expr, ref string fieldName, ref string fieldValue)
-        {
-            if (expr.NodeType == ExpressionType.Constant)
-            {
-                fieldValue = GetFieldValue(expr);
-            }
-            else if (expr.NodeType == ExpressionType.MemberAccess)
-            {
-                fieldName = GetFieldName(expr);
-            }
-            else if (expr.NodeType == ExpressionType.Call)
-            {
-                MethodCallExpression methodCall = (MethodCallExpression)expr;
-                if (methodCall.Arguments.Count > 1)
-                {
-                    SetMethodValues(methodCall, out fieldName, out fieldValue);
-                }
-                else
-                {
-                    if (methodCall.Arguments[0].NodeType == ExpressionType.Constant)
-                    {
-                        fieldValue = GetFieldValue(expr);
-                    }
-                    if (methodCall.Arguments[0].NodeType == ExpressionType.MemberAccess)
-                    {
-                        fieldName = GetFieldName(expr);
-                    }
-                }
-            }
-        }
-
-        private void FlipOperator(Expression expr, ref ExpressionType oper)
-        {
-            Func<ExpressionType, ExpressionType> _flipOperator = o =>
-            {
-                if (o == ExpressionType.Equal)
-                    o = ExpressionType.Equal;
-
-                if (o == ExpressionType.GreaterThan)
-                    o = ExpressionType.LessThan;
-
-                if (o == ExpressionType.GreaterThanOrEqual)
-                    o = ExpressionType.LessThanOrEqual;
-
-                if (o == ExpressionType.LessThan)
-                    o = ExpressionType.GreaterThan;
-
-                if (o == ExpressionType.LessThanOrEqual)
-                    o = ExpressionType.GreaterThanOrEqual;
-
-                return o;
-            };
-
-            if (expr.NodeType == ExpressionType.Constant)
-            {
-                oper = _flipOperator(oper);
-            }
-            else if (expr.NodeType == ExpressionType.Call)
-            {
-                MethodCallExpression methodCall = (MethodCallExpression)expr;
-
-                if (methodCall.Arguments[0].NodeType == ExpressionType.Constant)
-                {
-                    oper = _flipOperator(oper);
-                }
-            }
-        }
-
-        private void VisitSimpleMethodCall(Utilities.ContinuationOperator continuation, MethodCallExpression methodCall, bool neg)
-        {
-            string fieldName = "";
-            string fieldValue = "";
-
-            if (methodCall.Object != null)
-            {
-                fieldName = GetFieldName(methodCall.Object);
-                fieldValue = GetFieldValue(methodCall.Arguments[0]);
-            }
-            else
-            {
-                SetMethodValues(methodCall, out fieldName, out fieldValue);
-            }
-
-            if (string.IsNullOrEmpty(fieldName) | string.IsNullOrEmpty(fieldValue))
-            {
-                VisitExpression(continuation, methodCall, neg);
-            }
-
-            EncodeQuery(continuation, fieldName, Utilities.GetRepoExpressionType(methodCall.Method.Name), fieldValue, neg);
-        }
-
-        private string GetFieldName(Expression expr)
-        {
-            string fieldname = "";
-
-            if (expr.NodeType == ExpressionType.MemberAccess)
-                fieldname = GetPropertyName(expr);
-
-            if (expr.NodeType == ExpressionType.Call && (expr as MethodCallExpression).Method.Name == "Parse")
-                fieldname = GetPropertyName((expr as MethodCallExpression).Arguments[0]);
-
-            return fieldname;
-        }
-
-        private string GetFieldValue(Expression expr)
-        {
-            string fieldvalue = "";
-
-            if (expr.NodeType == ExpressionType.Constant)
-                fieldvalue = expr.ToString().Replace("\"", "");
-
-            if (expr.NodeType == ExpressionType.MemberAccess)
-                fieldvalue = GetPropertyName(expr);
-
-            if (expr.NodeType == ExpressionType.Call && (expr as MethodCallExpression).Method.Name == "Parse")
-                fieldvalue = (expr as MethodCallExpression).Arguments[0].ToString().Replace("\"", "");
-
-            if (expr.NodeType == ExpressionType.Convert)
-                fieldvalue = GetFieldValue((expr as UnaryExpression).Operand);
-
-            if (expr.NodeType == ExpressionType.NewArrayInit)
-                fieldvalue = string.Join(",", (expr as NewArrayExpression).Expressions.Select(o => o.ToString().Replace("\"", "")).ToArray());
-
-            return fieldvalue;
-        }
-
-        private string GetPropertyName(Expression propertyRefExpr)
-        {
-            if (propertyRefExpr == null)
-            {
-                throw new ArgumentNullException("propertyRefExpr", "propertyRefExpr is null.");
-            }
-
-            if (propertyRefExpr.NodeType == ExpressionType.Constant)
-            {
-                return propertyRefExpr.ToString();
-            }
-
-            MemberExpression memberExpr = propertyRefExpr as MemberExpression;
-            if (memberExpr == null)
-            {
-                UnaryExpression unaryExpr = propertyRefExpr as UnaryExpression;
-                if (unaryExpr != null && unaryExpr.NodeType == ExpressionType.Convert)
-                {
-                    memberExpr = unaryExpr.Operand as MemberExpression;
-                }
-            }
-
-            if (memberExpr != null && memberExpr.Member.MemberType == System.Reflection.MemberTypes.Property)
-            {
-                return memberExpr.Member.Name;
-            }
-
-            if (memberExpr != null && memberExpr.Member.MemberType == System.Reflection.MemberTypes.Field)
-            {
-                return memberExpr.Member.Name;
-            }
-
-            throw new ArgumentException("No property reference expression was found.", "propertyRefExpr");
-        }
-
         private void AppendGroupBy()
         {
             if (String.IsNullOrEmpty(_groupbyQuery))
@@ -327,9 +71,7 @@ namespace LinqToServiceNow
         private void EncodeQuery(Utilities.ContinuationOperator continuationOperator, string fieldName, Utilities.RepoExpressionType myOperator, string myValue, bool neg)
         {
             if (string.IsNullOrEmpty(fieldName) | string.IsNullOrEmpty(myValue))
-            {
                 return;
-            }
 
             string oper = Utilities.GetRepoExpressionType(myOperator);
 
@@ -339,9 +81,7 @@ namespace LinqToServiceNow
             string query = string.Format("{0}{1}{2}", fieldName, oper, myValue);
 
             if (!string.IsNullOrEmpty(_encodedQuery) && !(_encodedQuery.EndsWith("NQ")))
-            {
                 query = Utilities.GetContinuationOperator(continuationOperator) + query;
-            }
 
             _encodedQuery += query;
 
@@ -356,13 +96,9 @@ namespace LinqToServiceNow
         private string GetOrdering(Expression<Func<TGetRecordsResponseGetRecordsResult, dynamic>> field)
         {
             if (field.Body.NodeType == ExpressionType.New)
-            {
-                return string.Join(",", (field.Body as NewExpression).Arguments.Select(o => GetPropertyName(o)).ToArray());
-            }
+                return string.Join(",", (field.Body as NewExpression).Arguments.Select(o => Utilities.GetPropertyName(o)).ToArray());
             else
-            {
-                return GetPropertyName(field.Body);
-            }
+                return Utilities.GetPropertyName(field.Body);
         }
 
         private bool IsLimited()
@@ -401,6 +137,8 @@ namespace LinqToServiceNow
             MethodInfo methodInfo = t.GetMethod("getRecords");
 
             AppendGroupBy();
+
+            SetFilterProperty("__encoded_query", _encodedQuery);
 
             if (!IsLimited())
             {
@@ -540,21 +278,21 @@ namespace LinqToServiceNow
 
             ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retval = this.DeepCopy();
 
-            retval.VisitExpression(Utilities.ContinuationOperator.And, stmt.Body);
+            retval._encodedQuery += (new ExpressionVisitor()).VisitExpression(Utilities.ContinuationOperator.And, stmt.Body);
             return retval;
         }
 
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> SkipWhile(Expression<Func<TGetRecordsResponseGetRecordsResult, bool>> stmt)
         {
             ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retval = this.DeepCopy();
-            retval.VisitExpression(Utilities.ContinuationOperator.And, stmt.Body, true);
+            retval._encodedQuery += "^" + (new ExpressionVisitor()).VisitExpression(Utilities.ContinuationOperator.And, stmt.Body, true);
             return retval;
         }
 
         public ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> TakeWhile(Expression<Func<TGetRecordsResponseGetRecordsResult, bool>> stmt)
         {
             ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retval = this.DeepCopy();
-            retval.VisitExpression(Utilities.ContinuationOperator.And, stmt.Body);
+            retval._encodedQuery += "^" + (new ExpressionVisitor()).VisitExpression(Utilities.ContinuationOperator.And, stmt.Body);
             return retval;
         }
 
@@ -639,9 +377,9 @@ namespace LinqToServiceNow
                 string query;
 
                 if (expr.NodeType == ExpressionType.New)
-                    query = "^GROUPBY" + String.Join(",", (expr as NewExpression).Arguments.Select(o => GetPropertyName(o)).ToArray());
+                    query = "^GROUPBY" + String.Join(",", (expr as NewExpression).Arguments.Select(o => Utilities.GetPropertyName(o)).ToArray());
                 else
-                    query = "^GROUPBY" + GetPropertyName(expr);
+                    query = "^GROUPBY" + Utilities.GetPropertyName(expr);
 
                 _groupbyQuery += query;
             };
@@ -652,9 +390,7 @@ namespace LinqToServiceNow
                 setGroupBy(unaryExpression.Operand);
             }
             else
-            {
                 setGroupBy(field.Body);
-            }
 
             ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retval = this.DeepCopy();
 
