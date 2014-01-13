@@ -18,12 +18,12 @@ namespace LinqToServiceNow
         private string _query = string.Empty;
 
         public Utilities.ContinuationOperator ContinuationOperator { get; set; }
-        public string FieldName {get; set;}
-        public Utilities.RepoExpressionType @Operator {get; set;} 
-        public string FieldValue {get; set;}
-        public bool IsNegated {get; set;}
-        public string EncodedQuery {get; set;}
-        public Expression @Expression {get; set;}
+        public string FieldName { get; set; }
+        public Utilities.RepoExpressionType @Operator { get; set; }
+        public string FieldValue { get; set; }
+        public bool IsNegated { get; set; }
+        public string EncodedQuery { get; set; }
+        public Expression @Expression { get; set; }
 
         public string @Value
         {
@@ -36,7 +36,7 @@ namespace LinqToServiceNow
             }
         }
 
-        public bool IsNameOrValueMissing 
+        public bool IsNameOrValueMissing
         {
             get
             {
@@ -44,13 +44,13 @@ namespace LinqToServiceNow
             }
         }
 
-       public bool HasValue
-       {
+        public bool HasValue
+        {
             get
             {
                 return !String.IsNullOrEmpty(EncodeValue());
             }
-       }
+        }
 
         public override string ToString()
         {
@@ -97,10 +97,10 @@ namespace LinqToServiceNow
         {
             _query = BuildExpression();
 
-            if(!String.IsNullOrEmpty(EncodedQuery) && !EncodedQuery.EndsWith("NQ"))
+            if (!String.IsNullOrEmpty(EncodedQuery) && !EncodedQuery.EndsWith("NQ"))
                 _query = Utilities.GetContinuationOperator(ContinuationOperator) + _query;
 
-            if(!String.IsNullOrEmpty(_query))
+            if (!String.IsNullOrEmpty(_query))
             {
                 _query = EncodedQuery + _query;
             }
@@ -134,6 +134,15 @@ namespace LinqToServiceNow
             if (expr.NodeType == ExpressionType.Call && (expr as MethodCallExpression).Method.Name == "Parse")
                 fieldvalue = (expr as MethodCallExpression).Arguments[0].ToString().Replace("\"", "");
 
+            if (expr.NodeType == ExpressionType.Call)
+            {
+                MethodCallExpression methodCall = expr as MethodCallExpression;
+                if (methodCall.Method.Name == "Parse")
+                    fieldvalue = (expr as MethodCallExpression).Arguments[0].ToString().Replace("\"", "");
+                else
+                    fieldvalue = Expression.Lambda(expr).Compile().DynamicInvoke().ToString();
+            }
+
             if (expr.NodeType == ExpressionType.Convert)
                 fieldvalue = GetFieldValue((expr as UnaryExpression).Operand);
 
@@ -160,6 +169,8 @@ namespace LinqToServiceNow
             }
             else
             {
+                if (methodCall.Arguments[0].NodeType == ExpressionType.Call)
+                    SetMethodValues(methodCall.Arguments[0] as MethodCallExpression);
                 if (methodCall.Arguments[0].NodeType == ExpressionType.Constant)
                     FieldValue = GetFieldValue(methodCall);
                 if (methodCall.Arguments[0].NodeType == ExpressionType.MemberAccess)
@@ -168,7 +179,7 @@ namespace LinqToServiceNow
         }
 
         private void SetBinaryValues(BinaryExpression binExpr)
-        {            
+        {
             FlipOperator(binExpr.Left);
             SetValues(binExpr.Left);
             if (IsNameOrValueMissing)
@@ -200,6 +211,8 @@ namespace LinqToServiceNow
                 MethodCallExpression methodCall = (MethodCallExpression)expr;
                 if (methodCall.Arguments[0].NodeType == ExpressionType.Constant)
                     Operator = Utilities.FlipRepoExpressionType(Operator);
+                if (methodCall.Arguments[0].NodeType == ExpressionType.Call)
+                    FlipOperator(methodCall.Arguments[0]);
             }
         }
     }
