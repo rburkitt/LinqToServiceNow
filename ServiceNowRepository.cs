@@ -193,7 +193,9 @@ namespace LinqToServiceNow
         {
             ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retVal = this.DeepCopy();
 
-            retVal.SetFilterProperty("__first_row", count.ToString());
+            int lastRow = count + int.Parse(GetFirstRow());
+
+            retVal.SetFilterProperty("__first_row", lastRow.ToString());
 
             return retVal;
         }
@@ -203,7 +205,7 @@ namespace LinqToServiceNow
             ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retVal = this.DeepCopy();
 
             retVal.SetFilterProperty("__first_row", start.ToString());
-            retVal.SetFilterProperty("__last_row", last.ToString());
+            retVal.SetFilterProperty("__last_row", (start + last).ToString());
 
             return retVal;
         }
