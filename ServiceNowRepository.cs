@@ -109,7 +109,12 @@ namespace LinqToServiceNow
 
             PropertyInfo[] propInfo = t.GetProperties();
 
-            retVal = propInfo.Any(o => new string[] { "__last_row", "__limit" }.Contains(o.Name) & o.GetValue(_filter) != null);
+			if (propInfo != null && propInfo.Length > 0)
+				retVal = propInfo.Any (o => new string[] { "__last_row", "__limit" }.Contains (o.Name) & o.GetValue (_filter) != null);
+			else {
+				FieldInfo[] fieldInfo = t.GetFields ();
+				retVal = fieldInfo.Any (o => new string[] { "__last_row", "__limit" }.Contains (o.Name) & o.GetValue (_filter) != null); 
+			}
 
             return retVal;
         }
@@ -122,7 +127,17 @@ namespace LinqToServiceNow
 
             PropertyInfo propInfo = t.GetProperty("__first_row");
 
-            object obj = propInfo.GetValue(_filter);
+			object obj = new object();
+
+			if(propInfo != null)
+				obj = propInfo.GetValue(_filter);
+			else
+			{
+				FieldInfo fieldInfo = t.GetField ("__first_row");
+
+				if (fieldInfo != null)
+					obj = fieldInfo.GetValue (_filter);
+			}
 
             if (obj != null)
                 retVal = obj.ToString();
@@ -184,7 +199,7 @@ namespace LinqToServiceNow
         {
             ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retVal = this.DeepCopy();
 
-            int lastRow = count + int.Parse(GetFirstRow());
+			int lastRow = count + int.Parse(GetFirstRow());
 
             retVal.SetFilterProperty("__last_row", lastRow.ToString());
 
