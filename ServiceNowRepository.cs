@@ -29,6 +29,8 @@ namespace LinqToServiceNow
         private string _encodedQuery;
         private string _groupbyQuery;
 
+        protected System.Net.NetworkCredential @Credential { get; set; }
+
         private void SetFilterProperty(string prop, string val)
         {
             Type t = _filter.GetType();
@@ -130,9 +132,65 @@ namespace LinqToServiceNow
             return retVal;
         }
 
+        private void SetWebReferenceCredentials(Type t)
+        {
+            MemberInfo[] info = t.GetMember("Credentials");
+
+            foreach (PropertyInfo p in info.Where(o => o.MemberType == MemberTypes.Property))
+                p.SetValue(proxyUser, Credential);
+
+            foreach (FieldInfo f in info.Where(o => o.MemberType == MemberTypes.Field))
+                f.SetValue(proxyUser, Credential);
+        }
+
+        private void SetCredentialProperties(object clientCredential)
+        {
+            Type credType = clientCredential.GetType();
+
+            PropertyInfo propInfo = credType.GetProperty("UserName");
+
+            if (propInfo != null)
+            {
+                object userName = propInfo.GetValue(clientCredential);
+                Type uType = userName.GetType();
+                propInfo = uType.GetProperty("UserName");
+                if (propInfo != null)
+                {
+                    propInfo.SetValue(userName, Credential.UserName);
+                    propInfo = uType.GetProperty("Password");
+                    if (propInfo != null)
+                        propInfo.SetValue(userName, Credential.Password);
+                }
+            }
+        }
+
+        private void SetServiceReferenceCredentials(Type t)
+        {
+            MemberInfo[] info = t.GetMember("ClientCredentials");
+
+            foreach (PropertyInfo p in info.Where(o => o.MemberType == MemberTypes.Property))
+                SetCredentialProperties(p.GetValue(proxyUser));
+
+            foreach (FieldInfo f in info.Where(o => o.MemberType == MemberTypes.Field))
+                SetCredentialProperties(f.GetValue(proxyUser));
+        }
+
+        private void SetCredentials(Type t)
+        {
+            if (Credential != null)
+            {
+                if (t.BaseType == typeof(System.Web.Services.Protocols.SoapHttpClientProtocol))
+                    SetWebReferenceCredentials(t);
+                else
+                    SetServiceReferenceCredentials(t);
+            }
+        }
+
         private TGetRecordsResponseGetRecordsResult[] GetRecords()
         {
             Type t = proxyUser.GetType();
+
+            SetCredentials(t);
 
             MethodInfo methodInfo = t.GetMethod("getRecords");
 
@@ -443,6 +501,13 @@ namespace LinqToServiceNow
         public IEnumerator GetEnumerator1()
         {
             return this.GetEnumerator();
+        }
+
+        public ServiceNowRepository() { }
+
+        public ServiceNowRepository(System.Net.NetworkCredential credential)
+        {
+            this.Credential = credential;
         }
     }
 }
