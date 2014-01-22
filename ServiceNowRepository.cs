@@ -111,12 +111,7 @@ namespace LinqToServiceNow
 
             PropertyInfo[] propInfo = t.GetProperties();
 
-			if (propInfo != null && propInfo.Length > 0)
-				retVal = propInfo.Any (o => new string[] { "__last_row", "__limit" }.Contains (o.Name) & o.GetValue (_filter) != null);
-			else {
-				FieldInfo[] fieldInfo = t.GetFields ();
-				retVal = fieldInfo.Any (o => new string[] { "__last_row", "__limit" }.Contains (o.Name) & o.GetValue (_filter) != null); 
-			}
+            retVal = propInfo.Any(o => new string[] { "__last_row", "__limit" }.Contains(o.Name) & o.GetValue(_filter) != null);
 
             return retVal;
         }
@@ -129,17 +124,7 @@ namespace LinqToServiceNow
 
             PropertyInfo propInfo = t.GetProperty("__first_row");
 
-			object obj = new object();
-
-			if(propInfo != null)
-				obj = propInfo.GetValue(_filter);
-			else
-			{
-				FieldInfo fieldInfo = t.GetField ("__first_row");
-
-				if (fieldInfo != null)
-					obj = fieldInfo.GetValue (_filter);
-			}
+            object obj = propInfo.GetValue(_filter);
 
             if (obj != null)
                 retVal = obj.ToString();
@@ -158,46 +143,42 @@ namespace LinqToServiceNow
                 f.SetValue(proxyUser, Credential);
         }
 
-        private void SetCredentialProperties(object clientCredential)
-        {
-            Type credType = clientCredential.GetType();
-
-            PropertyInfo propInfo = credType.GetProperty("UserName");
-
-            if (propInfo != null)
-            {
-                object userName = propInfo.GetValue(clientCredential);
-                Type uType = userName.GetType();
-                propInfo = uType.GetProperty("UserName");
-                if (propInfo != null)
-                {
-                    propInfo.SetValue(userName, Credential.UserName);
-                    propInfo = uType.GetProperty("Password");
-                    if (propInfo != null)
-                        propInfo.SetValue(userName, Credential.Password);
-                }
-            }
-        }
-
         private void SetServiceReferenceCredentials(Type t)
         {
             MemberInfo[] info = t.GetMember("ClientCredentials");
 
             foreach (PropertyInfo p in info.Where(o => o.MemberType == MemberTypes.Property))
-                SetCredentialProperties(p.GetValue(proxyUser));
+            {
+                var pUserName = p.PropertyType.GetProperty("UserName");
+                var userName = pUserName.GetValue(p.GetValue(proxyUser));
+                pUserName.PropertyType.GetProperty("UserName").SetValue(userName, Credential.UserName);
+                pUserName.PropertyType.GetProperty("Password").SetValue(userName, Credential.Password);
+            }
 
             foreach (FieldInfo f in info.Where(o => o.MemberType == MemberTypes.Field))
-                SetCredentialProperties(f.GetValue(proxyUser));
+            {
+                var pUserName = f.FieldType.GetProperty("UserName");
+                var userName = pUserName.GetValue(f.GetValue(proxyUser));
+                pUserName.PropertyType.GetProperty("UserName").SetValue(userName, Credential.UserName);
+                pUserName.PropertyType.GetProperty("Password").SetValue(userName, Credential.Password);
+            }
         }
 
         private void SetCredentials(Type t)
         {
             if (Credential != null)
             {
-                if (t.BaseType == typeof(System.Web.Services.Protocols.SoapHttpClientProtocol))
-                    SetWebReferenceCredentials(t);
-                else
-                    SetServiceReferenceCredentials(t);
+                try
+                {
+                    if (t.BaseType == typeof(System.Web.Services.Protocols.SoapHttpClientProtocol))
+                        SetWebReferenceCredentials(t);
+                    else
+                        SetServiceReferenceCredentials(t);
+                }
+                catch
+                {
+                    throw new Exception("Exception while setting security credentials for web service.");
+                }
             }
         }
 
@@ -257,7 +238,7 @@ namespace LinqToServiceNow
         {
             ServiceNowRepository<TServiceNow_cmdb_ci_, TGetRecords, TGetRecordsResponseGetRecordsResult> retVal = this.DeepCopy();
 
-			int lastRow = count + int.Parse(GetFirstRow());
+            int lastRow = count + int.Parse(GetFirstRow());
 
             retVal.SetFilterProperty("__last_row", lastRow.ToString());
 
