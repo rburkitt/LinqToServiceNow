@@ -132,10 +132,8 @@ namespace LinqToServiceNow
             return retVal;
         }
 
-        private void SetWebReferenceCredentials(Type t)
+        private void SetWebReferenceCredentials(MemberInfo[] info)
         {
-            MemberInfo[] info = t.GetMember("Credentials");
-
             foreach (PropertyInfo p in info.Where(o => o.MemberType == MemberTypes.Property))
                 p.SetValue(proxyUser, Credential);
 
@@ -143,10 +141,8 @@ namespace LinqToServiceNow
                 f.SetValue(proxyUser, Credential);
         }
 
-        private void SetServiceReferenceCredentials(Type t)
+        private void SetServiceReferenceCredentials(MemberInfo[] info)
         {
-            MemberInfo[] info = t.GetMember("ClientCredentials");
-
             foreach (PropertyInfo p in info.Where(o => o.MemberType == MemberTypes.Property))
             {
                 var pUserName = p.PropertyType.GetProperty("UserName");
@@ -171,9 +167,9 @@ namespace LinqToServiceNow
                 try
                 {
                     if (t.BaseType == typeof(System.Web.Services.Protocols.SoapHttpClientProtocol))
-                        SetWebReferenceCredentials(t);
+                        SetWebReferenceCredentials(t.GetMember("Credentials"));
                     else
-                        SetServiceReferenceCredentials(t);
+                        SetServiceReferenceCredentials(t.GetMember("ClientCredentials"));
                 }
                 catch
                 {
