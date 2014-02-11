@@ -499,25 +499,28 @@ namespace LinqToServiceNow
             return query;
         }
 
-        public dynamic Insert<TInsert>(TInsert _insert)
+        public string Insert<TInsert>(TInsert _insert)
         {
             Type t = proxyUser.GetType();
+            SetCredentials(t);
             MethodInfo methodInfo = t.GetMethod("insert");
-            return methodInfo.Invoke(proxyUser, new object[] { _insert });
+            return ((dynamic)methodInfo.Invoke(proxyUser, new object[] { _insert })).sys_id;
         }
 
-        public dynamic Update<TUpdate>(TUpdate _update)
+        public string Update<TUpdate>(TUpdate _update)
         {
             Type t = proxyUser.GetType();
+            SetCredentials(t);
             MethodInfo methodInfo = t.GetMethod("update");
-            return methodInfo.Invoke(proxyUser, new object[] { _update });
+            return ((dynamic)methodInfo.Invoke(proxyUser, new object[] { _update })).sys_id;
         }
 
-        public dynamic Delete<TDelete>(TDelete _delete) where TDelete : new()
+        public string Delete<TDelete>(TDelete _delete) where TDelete : new()
         {
             Type t = proxyUser.GetType();
+            SetCredentials(t);
             MethodInfo methodInfo = t.GetMethod("deleteRecord");
-            return methodInfo.Invoke(proxyUser, new object[] { _delete });
+            return ((dynamic)methodInfo.Invoke(proxyUser, new object[] { _delete })).count;
         }
 
         public IEnumerator<TGetRecordsResponseGetRecordsResult> GetEnumerator()
