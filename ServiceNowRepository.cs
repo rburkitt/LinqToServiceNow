@@ -195,6 +195,14 @@ namespace LinqToServiceNow
             }
         }
 
+        private TGetRecordsResponseGetRecordsResult[] GetRecords(object[] recs)
+        {
+            if (_selectQuery != null)
+                return recs.Select(o => _selectQuery(o)).ToArray();
+            else
+                return recs.Cast<TGetRecordsResponseGetRecordsResult>().ToArray();
+        }
+
         private TGetRecordsResponseGetRecordsResult[] GetRecords()
         {
             Type t = proxyUser.GetType();
@@ -217,11 +225,7 @@ namespace LinqToServiceNow
 
                 do
                 {
-                    if (_selectQuery != null)
-                        list.AddRange(rslt.Select(o => _selectQuery(o)).ToArray());
-                    else
-                        list.AddRange(rslt.Cast<TGetRecordsResponseGetRecordsResult>().ToArray());
-
+                    list.AddRange(GetRecords(rslt));
                     first += 250;
                     rslt = (object[])methodInfo.Invoke(proxyUser, new object[] { Range(first, last)._filter });
                 }
@@ -231,16 +235,7 @@ namespace LinqToServiceNow
             }
             else
             {
-                if (_selectQuery != null)
-                {
-                    object[] ret = (object[])methodInfo.Invoke(proxyUser, new object[] { _filter });
-                    return ret.Select(o => _selectQuery(o)).ToArray();
-                }
-                else
-                {
-                    TGetRecordsResponseGetRecordsResult[] ret = (TGetRecordsResponseGetRecordsResult[])methodInfo.Invoke(proxyUser, new object[] { _filter });
-                    return ret.ToArray();
-                }
+                return GetRecords((object[])methodInfo.Invoke(proxyUser, new object[] { _filter }));
             }
         }
 
